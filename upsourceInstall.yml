@@ -1,0 +1,32 @@
+- hosts: upsource
+  remote_user: any
+  tasks:
+
+  - name: downloadupsource
+    shell: wget -P /opt https://download-cf.jetbrains.com/upsource/upsource-2017.2.2197.zip
+  - name: mkdir /opt/upsource
+    shell: mkdir /opt/upsource
+  - name: unzipagent
+    shell: unzip -d /opt/upsource /opt/upsource-*.zip
+  - name: mv
+    shell: mv /opt/upsource/upso*/* /opt/upsource
+  - name: copy_limits.conf
+    copy: src=/etc/ansible/files/limits.conf dest=/etc/security/limits.conf
+    register: cplim
+  - debug: var=cplim.stdout_lines
+  - name: install_haveged
+    shell: yum -y install haveged && chkconfig haveged on && systemctl start haveged
+  - name: configupsource
+    shell: /opt/upsource/bin/./upsource.sh configure --listen-port 80
+    register: config
+  - debug: var=config.stdout_lines
+  - name: startupsource
+    shell: /opt/upsource/bin/./upsource.sh start
+    register: start
+  - debug: var=start.stdout_lines
+  - name: copy_service
+    copy: src=/etc/ansible/files/upsource.service dest=/etc/systemd/system/upsource.service
+    register: cpserv
+  - debug: var=cpserv.stdout_lines
+  - name: reg_service
+    shell: systemctl enable upsource
